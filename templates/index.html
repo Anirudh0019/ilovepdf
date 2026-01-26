@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local PDF Tools</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(90deg, #e94560, #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        header p {
+            color: #8892b0;
+            font-size: 1.1rem;
+        }
+
+        .privacy-badge {
+            display: inline-block;
+            background: rgba(233, 69, 96, 0.2);
+            border: 1px solid #e94560;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .tool-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-5px);
+            border-color: #e94560;
+            box-shadow: 0 10px 40px rgba(233, 69, 96, 0.2);
+        }
+
+        .tool-card h3 {
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tool-card p {
+            color: #8892b0;
+            font-size: 0.9rem;
+        }
+
+        .tool-icon {
+            font-size: 1.5rem;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: #1a1a2e;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-header h2 {
+            font-size: 1.5rem;
+        }
+
+        .close-btn {
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 1.5rem;
+            cursor: pointer;
+            opacity: 0.7;
+        }
+
+        .close-btn:hover {
+            opacity: 1;
+        }
+
+        /* Form styles */
+        .drop-zone {
+            border: 2px dashed rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            padding: 2rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            margin-bottom: 1rem;
+        }
+
+        .drop-zone:hover,
+        .drop-zone.dragover {
+            border-color: #e94560;
+            background: rgba(233, 69, 96, 0.1);
+        }
+
+        .drop-zone input {
+            display: none;
+        }
+
+        .drop-zone label {
+            cursor: pointer;
+            display: block;
+        }
+
+        .file-list {
+            margin: 1rem 0;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+
+        .file-item button {
+            background: none;
+            border: none;
+            color: #e94560;
+            cursor: pointer;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #8892b0;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #e94560;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 1rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #e94560, #ff6b6b);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            transform: scale(1.02);
+            box-shadow: 0 5px 20px rgba(233, 69, 96, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .progress-bar {
+            display: none;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 2px;
+            margin-top: 1rem;
+            overflow: hidden;
+        }
+
+        .progress-bar.active {
+            display: block;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #e94560, #ff6b6b);
+            transition: width 0.3s ease;
+        }
+
+        .status-message {
+            text-align: center;
+            margin-top: 1rem;
+            padding: 0.75rem;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .status-message.success {
+            display: block;
+            background: rgba(46, 213, 115, 0.2);
+            color: #2ed573;
+        }
+
+        .status-message.error {
+            display: block;
+            background: rgba(233, 69, 96, 0.2);
+            color: #e94560;
+        }
+
+        .inline-inputs {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .inline-inputs .form-group {
+            flex: 1;
+        }
+
+        .preset-section {
+            margin-bottom: 1rem;
+        }
+
+        .preset-section label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #8892b0;
+        }
+
+        .preset-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.5rem;
+        }
+
+        .preset-btn {
+            padding: 0.6rem 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            font-size: 0.85rem;
+        }
+
+        .preset-btn:hover {
+            border-color: #e94560;
+            background: rgba(233, 69, 96, 0.1);
+        }
+
+        .preset-btn.active {
+            border-color: #e94560;
+            background: rgba(233, 69, 96, 0.2);
+        }
+
+        .preset-btn .preset-name {
+            font-weight: 600;
+            display: block;
+        }
+
+        .preset-btn .preset-size {
+            font-size: 0.75rem;
+            color: #8892b0;
+        }
+
+        .divider {
+            text-align: center;
+            color: #8892b0;
+            margin: 1rem 0;
+            position: relative;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 40%;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .divider::before { left: 0; }
+        .divider::after { right: 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Local PDF Tools</h1>
+            <p>Your private, offline PDF toolkit</p>
+            <div class="privacy-badge">
+                🔒 Files are processed locally and deleted immediately
+            </div>
+        </header>
+
+        <div class="tools-grid">
+            <div class="tool-card" onclick="openModal('merge')">
+                <h3><span class="tool-icon">📑</span> Merge PDFs</h3>
+                <p>Combine multiple PDF files into one document</p>
+            </div>
+
+            <div class="tool-card" onclick="openModal('split')">
+                <h3><span class="tool-icon">✂️</span> Split PDF</h3>
+                <p>Extract specific pages or split into individual files</p>
+            </div>
+
+            <div class="tool-card" onclick="openModal('compress')">
+                <h3><span class="tool-icon">🗜️</span> Compress PDF</h3>
+                <p>Reduce PDF file size while maintaining quality</p>
+            </div>
+
+            <div class="tool-card" onclick="openModal('resize-image')">
+                <h3><span class="tool-icon">📐</span> Resize Image</h3>
+                <p>Resize images to exact pixel dimensions</p>
+            </div>
+
+            <div class="tool-card" onclick="openModal('compress-image')">
+                <h3><span class="tool-icon">🖼️</span> Compress Image</h3>
+                <p>Reduce image file size with quality control</p>
+            </div>
+
+            <div class="tool-card" onclick="openModal('watermark')">
+                <h3><span class="tool-icon">💧</span> Watermark PDF</h3>
+                <p>Add text watermark to PDF documents</p>
+            </div>
+
+            <div class="tool-card" onclick="openModal('word-to-pdf')">
+                <h3><span class="tool-icon">📝</span> Word to PDF</h3>
+                <p>Convert Word documents to PDF format</p>
+            </div>
+
+            <div class="tool-card" onclick="openModal('pdf-to-images')">
+                <h3><span class="tool-icon">🖼️</span> PDF to Images</h3>
+                <p>Convert PDF pages to PNG or JPG images</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Merge Modal -->
+    <div class="modal" id="modal-merge">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📑 Merge PDFs</h2>
+                <button class="close-btn" onclick="closeModal('merge')">&times;</button>
+            </div>
+            <form id="form-merge" onsubmit="handleSubmit(event, 'merge')">
+                <div class="drop-zone" id="dropzone-merge">
+                    <label for="files-merge">
+                        <p>📁 Drop PDF files here or click to browse</p>
+                        <p style="font-size: 0.8rem; color: #666; margin-top: 0.5rem;">Select multiple files (min 2)</p>
+                    </label>
+                    <input type="file" id="files-merge" name="files" accept=".pdf" multiple required>
+                </div>
+                <div class="file-list" id="filelist-merge"></div>
+                <button type="submit" class="btn btn-primary">Merge PDFs</button>
+                <div class="progress-bar" id="progress-merge"><div class="progress-bar-fill"></div></div>
+                <div class="status-message" id="status-merge"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Split Modal -->
+    <div class="modal" id="modal-split">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>✂️ Split PDF</h2>
+                <button class="close-btn" onclick="closeModal('split')">&times;</button>
+            </div>
+            <form id="form-split" onsubmit="handleSubmit(event, 'split')">
+                <div class="drop-zone" id="dropzone-split">
+                    <label for="file-split">
+                        <p>📁 Drop PDF file here or click to browse</p>
+                    </label>
+                    <input type="file" id="file-split" name="file" accept=".pdf" required>
+                </div>
+                <div class="file-list" id="filelist-split"></div>
+                <div class="form-group">
+                    <label for="pages-split">Pages (e.g., "all" or "1,3,5-7")</label>
+                    <input type="text" id="pages-split" name="pages" value="all" placeholder="all">
+                </div>
+                <button type="submit" class="btn btn-primary">Split PDF</button>
+                <div class="progress-bar" id="progress-split"><div class="progress-bar-fill"></div></div>
+                <div class="status-message" id="status-split"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Compress PDF Modal -->
+    <div class="modal" id="modal-compress">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🗜️ Compress PDF</h2>
+                <button class="close-btn" onclick="closeModal('compress')">&times;</button>
+            </div>
+            <form id="form-compress" onsubmit="handleSubmit(event, 'compress')">
+                <div class="drop-zone" id="dropzone-compress">
+                    <label for="file-compress">
+                        <p>📁 Drop PDF file here or click to browse</p>
+                    </label>
+                    <input type="file" id="file-compress" name="file" accept=".pdf" required>
+                </div>
+                <div class="file-list" id="filelist-compress"></div>
+                <div class="form-group">
+                    <label for="quality-compress">Compression Level</label>
+                    <select id="quality-compress" name="quality">
+                        <option value="low">Low (smallest file)</option>
+                        <option value="medium" selected>Medium (balanced)</option>
+                        <option value="high">High (best quality)</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Compress PDF</button>
+                <div class="progress-bar" id="progress-compress"><div class="progress-bar-fill"></div></div>
+                <div class="status-message" id="status-compress"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Resize Image Modal -->
+    <div class="modal" id="modal-resize-image">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📐 Resize Image</h2>
+                <button class="close-btn" onclick="closeModal('resize-image')">&times;</button>
+            </div>
+            <form id="form-resize-image" onsubmit="handleSubmit(event, 'resize-image')">
+                <div class="drop-zone" id="dropzone-resize-image">
+                    <label for="file-resize-image">
+                        <p>📁 Drop image file here or click to browse</p>
+                    </label>
+                    <input type="file" id="file-resize-image" name="file" accept="image/*" required>
+                </div>
+                <div class="file-list" id="filelist-resize-image"></div>
+
+                <div class="preset-section">
+                    <label>Portrait (vertical)</label>
+                    <div class="preset-grid">
+                        <button type="button" class="preset-btn" onclick="setResizePreset(600, 800)">
+                            <span class="preset-name">Small</span>
+                            <span class="preset-size">600 × 800</span>
+                        </button>
+                        <button type="button" class="preset-btn" onclick="setResizePreset(768, 1024)">
+                            <span class="preset-name">Medium</span>
+                            <span class="preset-size">768 × 1024</span>
+                        </button>
+                        <button type="button" class="preset-btn" onclick="setResizePreset(1080, 1440)">
+                            <span class="preset-name">Large</span>
+                            <span class="preset-size">1080 × 1440</span>
+                        </button>
+                        <button type="button" class="preset-btn" onclick="setResizePreset(1200, 1600)">
+                            <span class="preset-name">XL</span>
+                            <span class="preset-size">1200 × 1600</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="preset-section">
+                    <label>Landscape (horizontal)</label>
+                    <div class="preset-grid">
+                        <button type="button" class="preset-btn" onclick="setResizePreset(800, 600)">
+                            <span class="preset-name">Small</span>
+                            <span class="preset-size">800 × 600</span>
+                        </button>
+                        <button type="button" class="preset-btn" onclick="setResizePreset(1024, 768)">
+                            <span class="preset-name">Medium</span>
+                            <span class="preset-size">1024 × 768</span>
+                        </button>
+                        <button type="button" class="preset-btn" onclick="setResizePreset(1920, 1080)">
+                            <span class="preset-name">Full HD</span>
+                            <span class="preset-size">1920 × 1080</span>
+                        </button>
+                        <button type="button" class="preset-btn" onclick="setResizePreset(2560, 1440)">
+                            <span class="preset-name">2K</span>
+                            <span class="preset-size">2560 × 1440</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="preset-section">
+                    <label>Square</label>
+                    <div class="preset-grid">
+                        <button type="button" class="preset-btn" onclick="setResizePreset(500, 500)">
+                            <span class="preset-name">Small</span>
+                            <span class="preset-size">500 × 500</span>
+                        </button>
+                        <button type="button" class="preset-btn" onclick="setResizePreset(1000, 1000)">
+                            <span class="preset-name">Medium</span>
+                            <span class="preset-size">1000 × 1000</span>
+                        </button>
+                        <button type="button" class="preset-btn" onclick="setResizePreset(1080, 1080)">
+                            <span class="preset-name">Instagram</span>
+                            <span class="preset-size">1080 × 1080</span>
+                        </button>
+                        <button type="button" class="preset-btn" onclick="setResizePreset(2000, 2000)">
+                            <span class="preset-name">Large</span>
+                            <span class="preset-size">2000 × 2000</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="divider">or custom size</div>
+
+                <div class="inline-inputs">
+                    <div class="form-group">
+                        <label for="width-resize-image">Width (px)</label>
+                        <input type="number" id="width-resize-image" name="width" required min="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="height-resize-image">Height (px)</label>
+                        <input type="number" id="height-resize-image" name="height" required min="1">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Resize Image</button>
+                <div class="progress-bar" id="progress-resize-image"><div class="progress-bar-fill"></div></div>
+                <div class="status-message" id="status-resize-image"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Compress Image Modal -->
+    <div class="modal" id="modal-compress-image">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🖼️ Compress Image</h2>
+                <button class="close-btn" onclick="closeModal('compress-image')">&times;</button>
+            </div>
+            <form id="form-compress-image" onsubmit="handleSubmit(event, 'compress-image')">
+                <div class="drop-zone" id="dropzone-compress-image">
+                    <label for="file-compress-image">
+                        <p>📁 Drop image file here or click to browse</p>
+                    </label>
+                    <input type="file" id="file-compress-image" name="file" accept="image/*" required>
+                </div>
+                <div class="file-list" id="filelist-compress-image"></div>
+                <div class="form-group">
+                    <label for="quality-compress-image">Quality (1-100)</label>
+                    <input type="number" id="quality-compress-image" name="quality" value="85" min="1" max="100">
+                </div>
+                <button type="submit" class="btn btn-primary">Compress Image</button>
+                <div class="progress-bar" id="progress-compress-image"><div class="progress-bar-fill"></div></div>
+                <div class="status-message" id="status-compress-image"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Watermark Modal -->
+    <div class="modal" id="modal-watermark">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>💧 Watermark PDF</h2>
+                <button class="close-btn" onclick="closeModal('watermark')">&times;</button>
+            </div>
+            <form id="form-watermark" onsubmit="handleSubmit(event, 'watermark')">
+                <div class="drop-zone" id="dropzone-watermark">
+                    <label for="file-watermark">
+                        <p>📁 Drop PDF file here or click to browse</p>
+                    </label>
+                    <input type="file" id="file-watermark" name="file" accept=".pdf" required>
+                </div>
+                <div class="file-list" id="filelist-watermark"></div>
+                <div class="form-group">
+                    <label for="text-watermark">Watermark Text</label>
+                    <input type="text" id="text-watermark" name="text" value="CONFIDENTIAL" required>
+                </div>
+                <div class="form-group">
+                    <label for="opacity-watermark">Opacity (0.1 - 1.0)</label>
+                    <input type="number" id="opacity-watermark" name="opacity" value="0.3" min="0.1" max="1" step="0.1">
+                </div>
+                <button type="submit" class="btn btn-primary">Add Watermark</button>
+                <div class="progress-bar" id="progress-watermark"><div class="progress-bar-fill"></div></div>
+                <div class="status-message" id="status-watermark"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Word to PDF Modal -->
+    <div class="modal" id="modal-word-to-pdf">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📝 Word to PDF</h2>
+                <button class="close-btn" onclick="closeModal('word-to-pdf')">&times;</button>
+            </div>
+            <form id="form-word-to-pdf" onsubmit="handleSubmit(event, 'word-to-pdf')">
+                <div class="drop-zone" id="dropzone-word-to-pdf">
+                    <label for="file-word-to-pdf">
+                        <p>📁 Drop Word file here or click to browse</p>
+                        <p style="font-size: 0.8rem; color: #666; margin-top: 0.5rem;">.docx files supported</p>
+                    </label>
+                    <input type="file" id="file-word-to-pdf" name="file" accept=".docx" required>
+                </div>
+                <div class="file-list" id="filelist-word-to-pdf"></div>
+                <button type="submit" class="btn btn-primary">Convert to PDF</button>
+                <div class="progress-bar" id="progress-word-to-pdf"><div class="progress-bar-fill"></div></div>
+                <div class="status-message" id="status-word-to-pdf"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- PDF to Images Modal -->
+    <div class="modal" id="modal-pdf-to-images">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🖼️ PDF to Images</h2>
+                <button class="close-btn" onclick="closeModal('pdf-to-images')">&times;</button>
+            </div>
+            <form id="form-pdf-to-images" onsubmit="handleSubmit(event, 'pdf-to-images')">
+                <div class="drop-zone" id="dropzone-pdf-to-images">
+                    <label for="file-pdf-to-images">
+                        <p>📁 Drop PDF file here or click to browse</p>
+                    </label>
+                    <input type="file" id="file-pdf-to-images" name="file" accept=".pdf" required>
+                </div>
+                <div class="file-list" id="filelist-pdf-to-images"></div>
+                <div class="inline-inputs">
+                    <div class="form-group">
+                        <label for="format-pdf-to-images">Format</label>
+                        <select id="format-pdf-to-images" name="format">
+                            <option value="png">PNG</option>
+                            <option value="jpeg">JPEG</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="dpi-pdf-to-images">DPI</label>
+                        <input type="number" id="dpi-pdf-to-images" name="dpi" value="150" min="72" max="600">
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Convert to Images</button>
+                <div class="progress-bar" id="progress-pdf-to-images"><div class="progress-bar-fill"></div></div>
+                <div class="status-message" id="status-pdf-to-images"></div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // File storage for each tool
+        const fileStorage = {};
+
+        function openModal(tool) {
+            document.getElementById(`modal-${tool}`).classList.add('active');
+            fileStorage[tool] = [];
+            updateFileList(tool);
+        }
+
+        function closeModal(tool) {
+            document.getElementById(`modal-${tool}`).classList.remove('active');
+            document.getElementById(`status-${tool}`).className = 'status-message';
+            document.getElementById(`status-${tool}`).textContent = '';
+            document.getElementById(`progress-${tool}`).classList.remove('active');
+            fileStorage[tool] = [];
+            updateFileList(tool);
+            // Reset form
+            document.getElementById(`form-${tool}`).reset();
+        }
+
+        function updateFileList(tool) {
+            const listEl = document.getElementById(`filelist-${tool}`);
+            if (!fileStorage[tool] || fileStorage[tool].length === 0) {
+                listEl.innerHTML = '';
+                return;
+            }
+
+            listEl.innerHTML = fileStorage[tool].map((file, index) => `
+                <div class="file-item">
+                    <span>${file.name} (${(file.size / 1024).toFixed(1)} KB)</span>
+                    <button type="button" onclick="removeFile('${tool}', ${index})">✕</button>
+                </div>
+            `).join('');
+        }
+
+        function removeFile(tool, index) {
+            fileStorage[tool].splice(index, 1);
+            updateFileList(tool);
+        }
+
+        // Set resize presets
+        function setResizePreset(width, height) {
+            document.getElementById('width-resize-image').value = width;
+            document.getElementById('height-resize-image').value = height;
+
+            // Update active state on preset buttons
+            document.querySelectorAll('#modal-resize-image .preset-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.closest('.preset-btn').classList.add('active');
+        }
+
+        // Setup drag and drop for all tools
+        document.querySelectorAll('.drop-zone').forEach(zone => {
+            const tool = zone.id.replace('dropzone-', '');
+            const input = zone.querySelector('input[type="file"]');
+
+            zone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                zone.classList.add('dragover');
+            });
+
+            zone.addEventListener('dragleave', () => {
+                zone.classList.remove('dragover');
+            });
+
+            zone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                zone.classList.remove('dragover');
+                const files = Array.from(e.dataTransfer.files);
+                if (input.multiple) {
+                    fileStorage[tool] = [...(fileStorage[tool] || []), ...files];
+                } else {
+                    fileStorage[tool] = files.slice(0, 1);
+                }
+                updateFileList(tool);
+            });
+
+            input.addEventListener('change', (e) => {
+                const files = Array.from(e.target.files);
+                if (input.multiple) {
+                    fileStorage[tool] = [...(fileStorage[tool] || []), ...files];
+                } else {
+                    fileStorage[tool] = files;
+                }
+                updateFileList(tool);
+            });
+        });
+
+        async function handleSubmit(event, tool) {
+            event.preventDefault();
+
+            const form = event.target;
+            const formData = new FormData(form);
+            const statusEl = document.getElementById(`status-${tool}`);
+            const progressEl = document.getElementById(`progress-${tool}`);
+            const progressFill = progressEl.querySelector('.progress-bar-fill');
+            const submitBtn = form.querySelector('button[type="submit"]');
+
+            // Add files from storage
+            if (fileStorage[tool] && fileStorage[tool].length > 0) {
+                // Clear any existing file entries
+                formData.delete('file');
+                formData.delete('files');
+
+                if (tool === 'merge') {
+                    fileStorage[tool].forEach(file => {
+                        formData.append('files', file);
+                    });
+                } else {
+                    formData.set('file', fileStorage[tool][0]);
+                }
+            }
+
+            // Validate files
+            if (tool === 'merge' && (!fileStorage[tool] || fileStorage[tool].length < 2)) {
+                statusEl.className = 'status-message error';
+                statusEl.textContent = 'Please select at least 2 PDF files';
+                return;
+            }
+
+            if (tool !== 'merge' && (!fileStorage[tool] || fileStorage[tool].length === 0)) {
+                statusEl.className = 'status-message error';
+                statusEl.textContent = 'Please select a file';
+                return;
+            }
+
+            submitBtn.disabled = true;
+            progressEl.classList.add('active');
+            progressFill.style.width = '30%';
+            statusEl.className = 'status-message';
+            statusEl.textContent = '';
+
+            try {
+                progressFill.style.width = '60%';
+
+                const response = await fetch(`/api/${tool}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                progressFill.style.width = '90%';
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Processing failed');
+                }
+
+                // Download the file
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+
+                // Get filename from Content-Disposition header or use default
+                const contentDisposition = response.headers.get('Content-Disposition');
+                let filename = 'download';
+                if (contentDisposition) {
+                    const match = contentDisposition.match(/filename="?(.+)"?/);
+                    if (match) filename = match[1];
+                }
+                a.download = filename;
+
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+
+                progressFill.style.width = '100%';
+                statusEl.className = 'status-message success';
+                statusEl.textContent = 'Done! File downloaded successfully.';
+
+            } catch (error) {
+                statusEl.className = 'status-message error';
+                statusEl.textContent = error.message;
+            } finally {
+                submitBtn.disabled = false;
+                setTimeout(() => {
+                    progressEl.classList.remove('active');
+                    progressFill.style.width = '0%';
+                }, 1000);
+            }
+        }
+
+        // Close modal on outside click
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    const tool = modal.id.replace('modal-', '');
+                    closeModal(tool);
+                }
+            });
+        });
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal.active').forEach(modal => {
+                    const tool = modal.id.replace('modal-', '');
+                    closeModal(tool);
+                });
+            }
+        });
+    </script>
+</body>
+</html>

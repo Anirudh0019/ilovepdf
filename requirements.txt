@@ -1,0 +1,23 @@
+# Web framework
+flask>=3.0.0
+flask-cors>=4.0.0
+
+# PDF manipulation
+PyPDF2>=3.0.0
+pdf2image>=1.16.0
+reportlab>=4.0.0
+
+# Image processing
+Pillow>=10.0.0
+
+# Word document handling
+python-docx>=1.0.0
+
+# PDF to Word (basic extraction)
+pdfplumber>=0.10.0
+
+# For better PDF compression
+pikepdf>=8.0.0
+
+# Development
+python-dotenv>=1.0.0
