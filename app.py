@@ -14,6 +14,9 @@ from tools.resize_image import resize_image, compress_image
 from tools.watermark import add_watermark
 from tools.word_to_pdf import word_to_pdf
 from tools.pdf_to_images import pdf_to_images
+from tools.sign_pdf import sign_pdf_with_text, sign_pdf_with_image
+from tools.ocr import image_to_text, pdf_to_text_ocr
+import base64
 
 app = Flask(__name__)
 CORS(app)
@@ -361,6 +364,137 @@ def api_pdf_to_images():
             download_name="pdf_images.zip",
             mimetype="application/zip",
         )
+    except Exception as e:
+        cleanup_temp_dir(temp_dir)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/sign-text", methods=["POST"])
+def api_sign_text():
+    """Add text signature to PDF"""
+    if "file" not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+
+    file = request.files["file"]
+    text = request.form.get("text", "")
+    if not text:
+        return jsonify({"error": "Signature text is required"}), 400
+
+    position = request.form.get("position", "bottom-right")
+    pages = request.form.get("pages", "last")
+    font_size = request.form.get("font_size", 24, type=int)
+    include_date = request.form.get("include_date", "false").lower() == "true"
+
+    temp_dir = get_temp_dir()
+    try:
+        filename = secure_filename(file.filename)
+        filepath = temp_dir / filename
+        file.save(filepath)
+
+        output_path = temp_dir / f"signed_{filename}"
+        sign_pdf_with_text(
+            filepath, output_path, text, position, pages, font_size, include_date
+        )
+
+        @after_this_request
+        def cleanup(response):
+            cleanup_temp_dir(temp_dir)
+            return response
+
+        return send_file(
+            output_path,
+            as_attachment=True,
+            download_name=f"signed_{filename}",
+            mimetype="application/pdf",
+        )
+    except Exception as e:
+        cleanup_temp_dir(temp_dir)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/sign-image", methods=["POST"])
+def api_sign_image():
+    """Add drawn signature image to PDF"""
+    if "file" not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+
+    file = request.files["file"]
+    signature_data = request.form.get("signature", "")
+
+    if not signature_data:
+        return jsonify({"error": "Signature image is required"}), 400
+
+    # Handle base64 data URL from canvas
+    if signature_data.startswith("data:"):
+        signature_data = signature_data.split(",")[1]
+
+    try:
+        image_bytes = base64.b64decode(signature_data)
+    except Exception:
+        return jsonify({"error": "Invalid signature image data"}), 400
+
+    position = request.form.get("position", "bottom-right")
+    pages = request.form.get("pages", "last")
+    sig_width = request.form.get("sig_width", 150, type=int)
+    include_date = request.form.get("include_date", "false").lower() == "true"
+
+    temp_dir = get_temp_dir()
+    try:
+        filename = secure_filename(file.filename)
+        filepath = temp_dir / filename
+        file.save(filepath)
+
+        output_path = temp_dir / f"signed_{filename}"
+        sign_pdf_with_image(
+            filepath, output_path, image_bytes, position, pages, sig_width, include_date
+        )
+
+        @after_this_request
+        def cleanup(response):
+            cleanup_temp_dir(temp_dir)
+            return response
+
+        return send_file(
+            output_path,
+            as_attachment=True,
+            download_name=f"signed_{filename}",
+            mimetype="application/pdf",
+        )
+    except Exception as e:
+        cleanup_temp_dir(temp_dir)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/ocr", methods=["POST"])
+def api_ocr():
+    """Extract text from image or PDF using OCR"""
+    if "file" not in request.files:
+        return jsonify({"error": "No file provided"}), 400
+
+    file = request.files["file"]
+    language = request.form.get("language", "eng")
+
+    temp_dir = get_temp_dir()
+    try:
+        filename = secure_filename(file.filename)
+        filepath = temp_dir / filename
+        file.save(filepath)
+
+        # Determine if it's a PDF or image
+        ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+
+        if ext == "pdf":
+            text = pdf_to_text_ocr(filepath, language)
+        else:
+            text = image_to_text(filepath, language)
+
+        cleanup_temp_dir(temp_dir)
+
+        return jsonify({
+            "success": True,
+            "text": text,
+            "filename": filename,
+        })
     except Exception as e:
         cleanup_temp_dir(temp_dir)
         return jsonify({"error": str(e)}), 500

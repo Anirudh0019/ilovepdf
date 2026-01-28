@@ -1,21 +1,83 @@
 from pathlib import Path
-from docx import Document
-from reportlab.lib.pagesizes import letter
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_RIGHT, TA_JUSTIFY
+import subprocess
+import shutil
 
 
 def word_to_pdf(input_path: Path, output_path: Path) -> None:
     """
-    Convert Word document to PDF.
-    Note: This is a basic conversion that handles text content.
-    Complex formatting, images, and tables may not be perfectly preserved.
+    Convert Word document to PDF using LibreOffice.
+    Preserves formatting, tables, images, and styles.
     """
+    # Check if LibreOffice is available
+    libreoffice_cmd = _find_libreoffice()
+
+    if libreoffice_cmd:
+        _convert_with_libreoffice(input_path, output_path, libreoffice_cmd)
+    else:
+        # Fallback to basic conversion if LibreOffice not available
+        _convert_basic(input_path, output_path)
+
+
+def _find_libreoffice() -> str | None:
+    """Find LibreOffice executable."""
+    # Common locations
+    candidates = [
+        "libreoffice",
+        "soffice",
+        "/usr/bin/libreoffice",
+        "/usr/bin/soffice",
+        "/Applications/LibreOffice.app/Contents/MacOS/soffice",
+    ]
+
+    for cmd in candidates:
+        if shutil.which(cmd):
+            return cmd
+
+    return None
+
+
+def _convert_with_libreoffice(input_path: Path, output_path: Path, libreoffice_cmd: str) -> None:
+    """Convert using LibreOffice headless mode."""
+    output_dir = output_path.parent
+
+    # Run LibreOffice in headless mode
+    result = subprocess.run(
+        [
+            libreoffice_cmd,
+            "--headless",
+            "--convert-to", "pdf",
+            "--outdir", str(output_dir),
+            str(input_path),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+
+    if result.returncode != 0:
+        raise RuntimeError(f"LibreOffice conversion failed: {result.stderr}")
+
+    # LibreOffice outputs with same name but .pdf extension
+    generated_pdf = output_dir / f"{input_path.stem}.pdf"
+
+    # Rename if needed
+    if generated_pdf != output_path and generated_pdf.exists():
+        shutil.move(str(generated_pdf), str(output_path))
+
+    if not output_path.exists():
+        raise RuntimeError("PDF conversion failed - output file not created")
+
+
+def _convert_basic(input_path: Path, output_path: Path) -> None:
+    """Fallback: Basic text-only conversion using reportlab."""
+    from docx import Document
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import inch
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+
     doc = Document(str(input_path))
 
-    # Create PDF
     pdf = SimpleDocTemplate(
         str(output_path),
         pagesize=letter,
@@ -28,7 +90,6 @@ def word_to_pdf(input_path: Path, output_path: Path) -> None:
     styles = getSampleStyleSheet()
     story = []
 
-    # Add custom styles
     styles.add(
         ParagraphStyle(
             name="CustomBody",
@@ -56,7 +117,6 @@ def word_to_pdf(input_path: Path, output_path: Path) -> None:
             story.append(Spacer(1, 12))
             continue
 
-        # Detect headings by style name
         style_name = para.style.name.lower() if para.style else ""
 
         if "heading" in style_name:
@@ -67,6 +127,5 @@ def word_to_pdf(input_path: Path, output_path: Path) -> None:
     if story:
         pdf.build(story)
     else:
-        # Create empty PDF with a note
         story.append(Paragraph("(Empty document)", styles["Normal"]))
         pdf.build(story)

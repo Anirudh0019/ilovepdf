@@ -359,6 +359,140 @@
 
         .divider::before { left: 0; }
         .divider::after { right: 0; }
+
+        /* Signature styles */
+        .tab-buttons {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 0.75rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #8892b0;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tab-btn:hover {
+            border-color: #e94560;
+        }
+
+        .tab-btn.active {
+            border-color: #e94560;
+            background: rgba(233, 69, 96, 0.2);
+            color: #fff;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .signature-canvas-container {
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            background: #fff;
+            margin-bottom: 0.5rem;
+            position: relative;
+        }
+
+        #signature-canvas {
+            display: block;
+            width: 100%;
+            cursor: crosshair;
+            touch-action: none;
+        }
+
+        .canvas-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .canvas-actions button {
+            padding: 0.5rem 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .canvas-actions button:hover {
+            border-color: #e94560;
+        }
+
+        .position-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .position-btn {
+            padding: 0.5rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #8892b0;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: all 0.2s ease;
+        }
+
+        .position-btn:hover {
+            border-color: #e94560;
+        }
+
+        .position-btn.active {
+            border-color: #e94560;
+            background: rgba(233, 69, 96, 0.2);
+            color: #fff;
+        }
+
+        /* OCR result styles */
+        .ocr-result {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .ocr-result pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            margin: 0;
+            font-family: inherit;
+            font-size: 0.9rem;
+            color: #ccc;
+        }
+
+        .copy-btn {
+            margin-top: 0.5rem;
+            padding: 0.5rem 1rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .copy-btn:hover {
+            border-color: #e94560;
+        }
     </style>
 </head>
 <body>
@@ -410,6 +544,16 @@
             <div class="tool-card" onclick="openModal('pdf-to-images')">
                 <h3><span class="tool-icon">🖼️</span> PDF to Images</h3>
                 <p>Convert PDF pages to PNG or JPG images</p>
+            </div>
+
+            <div class="tool-card" onclick="openModal('sign')">
+                <h3><span class="tool-icon">✍️</span> Sign PDF</h3>
+                <p>Add your signature to PDF documents</p>
+            </div>
+
+            <div class="tool-card" onclick="openModal('ocr')">
+                <h3><span class="tool-icon">🔍</span> OCR - Extract Text</h3>
+                <p>Extract text from images or scanned PDFs</p>
             </div>
         </div>
     </div>
@@ -708,6 +852,164 @@
         </div>
     </div>
 
+    <!-- Sign PDF Modal -->
+    <div class="modal" id="modal-sign">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>✍️ Sign PDF</h2>
+                <button class="close-btn" onclick="closeModal('sign')">&times;</button>
+            </div>
+
+            <div class="drop-zone" id="dropzone-sign">
+                <label for="file-sign">
+                    <p>📁 Drop PDF file here or click to browse</p>
+                </label>
+                <input type="file" id="file-sign" name="file" accept=".pdf" required>
+            </div>
+            <div class="file-list" id="filelist-sign"></div>
+
+            <div class="tab-buttons">
+                <button type="button" class="tab-btn active" onclick="switchSignTab('type')">Type Signature</button>
+                <button type="button" class="tab-btn" onclick="switchSignTab('draw')">Draw Signature</button>
+            </div>
+
+            <!-- Type Signature Tab -->
+            <div class="tab-content active" id="tab-type">
+                <form id="form-sign-text" onsubmit="handleSignSubmit(event, 'text')">
+                    <div class="form-group">
+                        <label for="signature-text">Your Signature</label>
+                        <input type="text" id="signature-text" name="text" placeholder="John Doe" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="font-size-sign">Font Size</label>
+                        <input type="number" id="font-size-sign" name="font_size" value="24" min="12" max="72">
+                    </div>
+                    <div class="form-group">
+                        <label>Position</label>
+                        <div class="position-grid">
+                            <button type="button" class="position-btn" onclick="setSignPosition('top-left')">Top Left</button>
+                            <button type="button" class="position-btn" onclick="setSignPosition('top-center')">Top Center</button>
+                            <button type="button" class="position-btn" onclick="setSignPosition('top-right')">Top Right</button>
+                            <button type="button" class="position-btn" onclick="setSignPosition('bottom-left')">Bottom Left</button>
+                            <button type="button" class="position-btn" onclick="setSignPosition('bottom-center')">Bottom Center</button>
+                            <button type="button" class="position-btn active" onclick="setSignPosition('bottom-right')">Bottom Right</button>
+                        </div>
+                        <input type="hidden" id="position-text" name="position" value="bottom-right">
+                    </div>
+                    <div class="form-group">
+                        <label for="pages-sign-text">Apply to Pages</label>
+                        <select id="pages-sign-text" name="pages">
+                            <option value="last">Last page only</option>
+                            <option value="first">First page only</option>
+                            <option value="all">All pages</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" id="include-date-text" name="include_date" style="width: auto;">
+                            Include date
+                        </label>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Sign PDF</button>
+                    <div class="progress-bar" id="progress-sign-text"><div class="progress-bar-fill"></div></div>
+                    <div class="status-message" id="status-sign-text"></div>
+                </form>
+            </div>
+
+            <!-- Draw Signature Tab -->
+            <div class="tab-content" id="tab-draw">
+                <form id="form-sign-draw" onsubmit="handleSignSubmit(event, 'draw')">
+                    <div class="signature-canvas-container">
+                        <canvas id="signature-canvas" width="440" height="150"></canvas>
+                    </div>
+                    <div class="canvas-actions">
+                        <button type="button" onclick="clearSignatureCanvas()">Clear</button>
+                        <button type="button" onclick="undoSignature()">Undo</button>
+                    </div>
+                    <div class="form-group">
+                        <label>Position</label>
+                        <div class="position-grid">
+                            <button type="button" class="position-btn pos-draw" onclick="setSignPositionDraw('top-left')">Top Left</button>
+                            <button type="button" class="position-btn pos-draw" onclick="setSignPositionDraw('top-center')">Top Center</button>
+                            <button type="button" class="position-btn pos-draw" onclick="setSignPositionDraw('top-right')">Top Right</button>
+                            <button type="button" class="position-btn pos-draw" onclick="setSignPositionDraw('bottom-left')">Bottom Left</button>
+                            <button type="button" class="position-btn pos-draw" onclick="setSignPositionDraw('bottom-center')">Bottom Center</button>
+                            <button type="button" class="position-btn pos-draw active" onclick="setSignPositionDraw('bottom-right')">Bottom Right</button>
+                        </div>
+                        <input type="hidden" id="position-draw" name="position" value="bottom-right">
+                    </div>
+                    <div class="form-group">
+                        <label for="sig-width">Signature Size</label>
+                        <input type="number" id="sig-width" name="sig_width" value="150" min="50" max="300">
+                    </div>
+                    <div class="form-group">
+                        <label for="pages-sign-draw">Apply to Pages</label>
+                        <select id="pages-sign-draw" name="pages">
+                            <option value="last">Last page only</option>
+                            <option value="first">First page only</option>
+                            <option value="all">All pages</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <input type="checkbox" id="include-date-draw" name="include_date" style="width: auto;">
+                            Include date
+                        </label>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Sign PDF</button>
+                    <div class="progress-bar" id="progress-sign-draw"><div class="progress-bar-fill"></div></div>
+                    <div class="status-message" id="status-sign-draw"></div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- OCR Modal -->
+    <div class="modal" id="modal-ocr">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>🔍 OCR - Extract Text</h2>
+                <button class="close-btn" onclick="closeModal('ocr')">&times;</button>
+            </div>
+            <form id="form-ocr" onsubmit="handleOcrSubmit(event)">
+                <div class="drop-zone" id="dropzone-ocr">
+                    <label for="file-ocr">
+                        <p>📁 Drop image or PDF here</p>
+                        <p style="font-size: 0.8rem; color: #666; margin-top: 0.5rem;">PNG, JPG, or scanned PDF</p>
+                    </label>
+                    <input type="file" id="file-ocr" name="file" accept="image/*,.pdf" required>
+                </div>
+                <div class="file-list" id="filelist-ocr"></div>
+                <div class="form-group">
+                    <label for="language-ocr">Language</label>
+                    <select id="language-ocr" name="language">
+                        <option value="eng">English</option>
+                        <option value="fra">French</option>
+                        <option value="deu">German</option>
+                        <option value="spa">Spanish</option>
+                        <option value="ita">Italian</option>
+                        <option value="por">Portuguese</option>
+                        <option value="nld">Dutch</option>
+                        <option value="rus">Russian</option>
+                        <option value="chi_sim">Chinese (Simplified)</option>
+                        <option value="chi_tra">Chinese (Traditional)</option>
+                        <option value="jpn">Japanese</option>
+                        <option value="kor">Korean</option>
+                        <option value="ara">Arabic</option>
+                        <option value="hin">Hindi</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Extract Text</button>
+                <div class="progress-bar" id="progress-ocr"><div class="progress-bar-fill"></div></div>
+                <div class="status-message" id="status-ocr"></div>
+                <div class="ocr-result" id="ocr-result" style="display: none;">
+                    <pre id="ocr-text"></pre>
+                    <button type="button" class="copy-btn" onclick="copyOcrText()">Copy to Clipboard</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script>
         // File storage for each tool
         const fileStorage = {};
@@ -912,6 +1214,302 @@
                 });
             }
         });
+
+        // ========== OCR Functions ==========
+        async function handleOcrSubmit(event) {
+            event.preventDefault();
+
+            const form = event.target;
+            const formData = new FormData(form);
+            const statusEl = document.getElementById('status-ocr');
+            const progressEl = document.getElementById('progress-ocr');
+            const progressFill = progressEl.querySelector('.progress-bar-fill');
+            const submitBtn = form.querySelector('button[type="submit"]');
+            const resultEl = document.getElementById('ocr-result');
+            const textEl = document.getElementById('ocr-text');
+
+            // Add file from storage
+            if (!fileStorage['ocr'] || fileStorage['ocr'].length === 0) {
+                statusEl.className = 'status-message error';
+                statusEl.textContent = 'Please select a file';
+                return;
+            }
+            formData.set('file', fileStorage['ocr'][0]);
+
+            submitBtn.disabled = true;
+            progressEl.classList.add('active');
+            progressFill.style.width = '30%';
+            statusEl.className = 'status-message';
+            statusEl.textContent = '';
+            resultEl.style.display = 'none';
+
+            try {
+                progressFill.style.width = '60%';
+
+                const response = await fetch('/api/ocr', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                progressFill.style.width = '90%';
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'OCR failed');
+                }
+
+                progressFill.style.width = '100%';
+
+                if (data.text && data.text.trim()) {
+                    textEl.textContent = data.text;
+                    resultEl.style.display = 'block';
+                    statusEl.className = 'status-message success';
+                    statusEl.textContent = 'Text extracted successfully!';
+                } else {
+                    statusEl.className = 'status-message error';
+                    statusEl.textContent = 'No text found in the image';
+                }
+
+            } catch (error) {
+                statusEl.className = 'status-message error';
+                statusEl.textContent = error.message;
+            } finally {
+                submitBtn.disabled = false;
+                setTimeout(() => {
+                    progressEl.classList.remove('active');
+                    progressFill.style.width = '0%';
+                }, 1000);
+            }
+        }
+
+        function copyOcrText() {
+            const text = document.getElementById('ocr-text').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                const originalText = btn.textContent;
+                btn.textContent = 'Copied!';
+                setTimeout(() => btn.textContent = originalText, 2000);
+            });
+        }
+
+        // ========== Signature Canvas ==========
+        let signatureCanvas, signatureCtx;
+        let isDrawing = false;
+        let signatureHistory = [];
+
+        function initSignatureCanvas() {
+            signatureCanvas = document.getElementById('signature-canvas');
+            if (!signatureCanvas) return;
+
+            signatureCtx = signatureCanvas.getContext('2d');
+            signatureCtx.strokeStyle = '#000';
+            signatureCtx.lineWidth = 2;
+            signatureCtx.lineCap = 'round';
+            signatureCtx.lineJoin = 'round';
+
+            // Mouse events
+            signatureCanvas.addEventListener('mousedown', startDrawing);
+            signatureCanvas.addEventListener('mousemove', draw);
+            signatureCanvas.addEventListener('mouseup', stopDrawing);
+            signatureCanvas.addEventListener('mouseout', stopDrawing);
+
+            // Touch events
+            signatureCanvas.addEventListener('touchstart', handleTouchStart);
+            signatureCanvas.addEventListener('touchmove', handleTouchMove);
+            signatureCanvas.addEventListener('touchend', stopDrawing);
+        }
+
+        function startDrawing(e) {
+            isDrawing = true;
+            signatureCtx.beginPath();
+            const rect = signatureCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            signatureCtx.moveTo(x, y);
+        }
+
+        function draw(e) {
+            if (!isDrawing) return;
+            const rect = signatureCanvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            signatureCtx.lineTo(x, y);
+            signatureCtx.stroke();
+        }
+
+        function stopDrawing() {
+            if (isDrawing) {
+                isDrawing = false;
+                // Save state for undo
+                signatureHistory.push(signatureCanvas.toDataURL());
+                if (signatureHistory.length > 20) signatureHistory.shift();
+            }
+        }
+
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = signatureCanvas.getBoundingClientRect();
+            isDrawing = true;
+            signatureCtx.beginPath();
+            signatureCtx.moveTo(touch.clientX - rect.left, touch.clientY - rect.top);
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            if (!isDrawing) return;
+            const touch = e.touches[0];
+            const rect = signatureCanvas.getBoundingClientRect();
+            signatureCtx.lineTo(touch.clientX - rect.left, touch.clientY - rect.top);
+            signatureCtx.stroke();
+        }
+
+        function clearSignatureCanvas() {
+            if (signatureCtx) {
+                signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+                signatureHistory = [];
+            }
+        }
+
+        function undoSignature() {
+            if (signatureHistory.length > 1) {
+                signatureHistory.pop(); // Remove current state
+                const prevState = signatureHistory[signatureHistory.length - 1];
+                const img = new Image();
+                img.onload = () => {
+                    signatureCtx.clearRect(0, 0, signatureCanvas.width, signatureCanvas.height);
+                    signatureCtx.drawImage(img, 0, 0);
+                };
+                img.src = prevState;
+            } else {
+                clearSignatureCanvas();
+            }
+        }
+
+        // Initialize canvas when modal opens
+        const originalOpenModal = openModal;
+        openModal = function(tool) {
+            originalOpenModal(tool);
+            if (tool === 'sign') {
+                setTimeout(initSignatureCanvas, 100);
+            }
+        };
+
+        // ========== Signature Tab Switching ==========
+        function switchSignTab(tab) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+
+            if (tab === 'type') {
+                document.querySelector('.tab-btn:first-child').classList.add('active');
+                document.getElementById('tab-type').classList.add('active');
+            } else {
+                document.querySelector('.tab-btn:last-child').classList.add('active');
+                document.getElementById('tab-draw').classList.add('active');
+                setTimeout(initSignatureCanvas, 100);
+            }
+        }
+
+        // ========== Position Selection ==========
+        function setSignPosition(position) {
+            document.querySelectorAll('#tab-type .position-btn').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('position-text').value = position;
+        }
+
+        function setSignPositionDraw(position) {
+            document.querySelectorAll('.pos-draw').forEach(btn => btn.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('position-draw').value = position;
+        }
+
+        // ========== Sign Form Submission ==========
+        async function handleSignSubmit(event, type) {
+            event.preventDefault();
+
+            const form = event.target;
+            const formData = new FormData(form);
+            const statusEl = document.getElementById(`status-sign-${type}`);
+            const progressEl = document.getElementById(`progress-sign-${type}`);
+            const progressFill = progressEl.querySelector('.progress-bar-fill');
+            const submitBtn = form.querySelector('button[type="submit"]');
+
+            // Add file from storage
+            if (!fileStorage['sign'] || fileStorage['sign'].length === 0) {
+                statusEl.className = 'status-message error';
+                statusEl.textContent = 'Please select a PDF file';
+                return;
+            }
+            formData.set('file', fileStorage['sign'][0]);
+
+            // For draw signature, add canvas data
+            if (type === 'draw') {
+                const canvasData = signatureCanvas.toDataURL('image/png');
+                // Check if canvas is empty
+                const emptyCanvas = document.createElement('canvas');
+                emptyCanvas.width = signatureCanvas.width;
+                emptyCanvas.height = signatureCanvas.height;
+                if (canvasData === emptyCanvas.toDataURL('image/png')) {
+                    statusEl.className = 'status-message error';
+                    statusEl.textContent = 'Please draw your signature first';
+                    return;
+                }
+                formData.set('signature', canvasData);
+            }
+
+            // Handle checkbox
+            const includeDateCheckbox = document.getElementById(`include-date-${type}`);
+            formData.set('include_date', includeDateCheckbox.checked ? 'true' : 'false');
+
+            submitBtn.disabled = true;
+            progressEl.classList.add('active');
+            progressFill.style.width = '30%';
+            statusEl.className = 'status-message';
+            statusEl.textContent = '';
+
+            try {
+                progressFill.style.width = '60%';
+
+                const endpoint = type === 'text' ? '/api/sign-text' : '/api/sign-image';
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                progressFill.style.width = '90%';
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || 'Signing failed');
+                }
+
+                // Download the file
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'signed_document.pdf';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+
+                progressFill.style.width = '100%';
+                statusEl.className = 'status-message success';
+                statusEl.textContent = 'Done! Signed PDF downloaded.';
+
+            } catch (error) {
+                statusEl.className = 'status-message error';
+                statusEl.textContent = error.message;
+            } finally {
+                submitBtn.disabled = false;
+                setTimeout(() => {
+                    progressEl.classList.remove('active');
+                    progressFill.style.width = '0%';
+                }, 1000);
+            }
+        }
     </script>
 </body>
 </html>
